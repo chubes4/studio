@@ -52,6 +52,7 @@ import {
 } from 'src/modules/cli/lib/cli-events-subscriber';
 import { isStudioCliInstalled } from 'src/modules/cli/lib/ipc-handlers';
 import { updateWindowsCliVersionedPathIfNeeded } from 'src/modules/cli/lib/windows-installation-manager';
+import { setupMcpServer } from 'src/modules/mcp/lib/mcp-installer';
 import { setupWPServerFiles, updateWPServerFiles } from 'src/setup-wp-server-files';
 import { getRunningSiteCount, stopAllServers } from 'src/site-server';
 import {
@@ -326,6 +327,8 @@ async function appBoot() {
 		await setupWPServerFiles().catch( Sentry.captureException );
 		// WordPress server files are updated asynchronously to avoid delaying app initialization
 		updateWPServerFiles().catch( Sentry.captureException );
+		// MCP server is set up asynchronously
+		setupMcpServer().catch( Sentry.captureException );
 
 		if ( await needsToMigrateFromWpNowFolder() ) {
 			await migrateFromWpNowFolder();

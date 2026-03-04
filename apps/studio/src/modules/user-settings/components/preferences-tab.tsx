@@ -2,7 +2,8 @@ import { SupportedLocale } from '@studio/common/lib/locale';
 import { useI18n } from '@wordpress/react-i18n';
 import { useState } from 'react';
 import Button from 'src/components/button';
-import { isWindowsStore } from 'src/lib/app-globals';
+import { isMac, isWindowsStore } from 'src/lib/app-globals';
+import { McpSettings } from 'src/modules/mcp/components/mcp-settings';
 import { EditorPicker } from 'src/modules/user-settings/components/editor-picker';
 import { LanguagePicker } from 'src/modules/user-settings/components/language-picker';
 import { StudioCliToggle } from 'src/modules/user-settings/components/studio-cli-toggle';
@@ -18,6 +19,8 @@ import {
 	useSaveUserTerminalMutation,
 	useGetStudioCliIsInstalledQuery,
 	useSaveStudioCliIsInstalledMutation,
+	useGetClaudeIsConfiguredForMcpQuery,
+	useSaveClaudeIsConfiguredForMcpMutation,
 } from 'src/stores/installed-apps-api';
 
 export const PreferencesTab = ( { onClose }: { onClose: () => void } ) => {
@@ -28,15 +31,18 @@ export const PreferencesTab = ( { onClose }: { onClose: () => void } ) => {
 	const { data: editor } = useGetUserEditorQuery();
 	const { data: terminal } = useGetUserTerminalQuery();
 	const { data: isCliInstalled } = useGetStudioCliIsInstalledQuery();
+	const { data: isClaudeConfigured } = useGetClaudeIsConfiguredForMcpQuery();
 
 	const [ saveEditor ] = useSaveUserEditorMutation();
 	const [ saveTerminal ] = useSaveUserTerminalMutation();
 	const [ saveCliIsInstalled ] = useSaveStudioCliIsInstalledMutation();
+	const [ saveClaudeIsConfigured ] = useSaveClaudeIsConfiguredForMcpMutation();
 
 	const [ dirtyLocale, setDirtyLocale ] = useState< SupportedLocale >();
 	const [ dirtyEditor, setDirtyEditor ] = useState< SupportedEditor | null >();
 	const [ dirtyTerminal, setDirtyTerminal ] = useState< SupportedTerminal >();
 	const [ dirtyIsCliInstalled, setDirtyIsCliInstalled ] = useState< boolean >();
+	const [ dirtyIsClaudeConfigured, setDirtyClaudeIsConfigured ] = useState< boolean >();
 
 	const savePreferences = async () => {
 		if ( dirtyLocale ) {
@@ -51,6 +57,9 @@ export const PreferencesTab = ( { onClose }: { onClose: () => void } ) => {
 		if ( dirtyIsCliInstalled !== undefined ) {
 			await saveCliIsInstalled( dirtyIsCliInstalled );
 		}
+		if ( dirtyIsClaudeConfigured !== undefined ) {
+			await saveClaudeIsConfigured( dirtyIsClaudeConfigured );
+		}
 		onClose();
 	};
 
@@ -58,12 +67,14 @@ export const PreferencesTab = ( { onClose }: { onClose: () => void } ) => {
 	const editorSelection = dirtyEditor ?? editor ?? 'vscode';
 	const terminalSelection = dirtyTerminal ?? terminal ?? 'terminal';
 	const isCliInstalledSelection = dirtyIsCliInstalled ?? isCliInstalled ?? false;
+	const isClaudeConfiguredSelection = dirtyIsClaudeConfigured ?? isClaudeConfigured ?? false;
 
 	const hasChanges = [
 		[ dirtyLocale, savedLocale ],
 		[ dirtyEditor, editor ],
 		[ dirtyTerminal, terminal ],
 		[ dirtyIsCliInstalled, isCliInstalled ],
+		[ dirtyIsClaudeConfigured, isClaudeConfigured ],
 	].some( ( [ a, b ] ) => a !== undefined && a !== b );
 
 	return (
@@ -77,6 +88,13 @@ export const PreferencesTab = ( { onClose }: { onClose: () => void } ) => {
 			<TerminalPicker value={ terminalSelection } onChange={ setDirtyTerminal } />
 			{ ! isWindowsStore() && (
 				<StudioCliToggle value={ isCliInstalledSelection } onChange={ setDirtyIsCliInstalled } />
+			) }
+			{ /* TODO: add Windows support */ }
+			{ isMac() && (
+				<McpSettings
+					valueClaude={ isClaudeConfiguredSelection }
+					onChangeClaude={ setDirtyClaudeIsConfigured }
+				/>
 			) }
 			<div className="mt-auto pt-2 flex justify-end gap-3">
 				<Button

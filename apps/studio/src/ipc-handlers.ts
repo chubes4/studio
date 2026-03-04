@@ -126,6 +126,14 @@ export {
 	showUserSettings,
 } from 'src/modules/user-settings/lib/ipc-handlers';
 
+export {
+	isClaudeDesktopInstalled,
+	isClaudeConfiguredForMcp,
+	configureClaudeForMcp,
+	unconfigureClaudeForMcp,
+	getMcpServerConfig,
+} from 'src/modules/mcp/lib/ipc-handlers';
+
 const DEBUG_LOG_MAX_LINES = 50;
 const PM2_HOME = nodePath.join( os.homedir(), '.studio', 'pm2' );
 const DEFAULT_ENCODED_PASSWORD = encodePassword( 'password' );
