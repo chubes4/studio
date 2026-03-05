@@ -70,9 +70,15 @@ async function downloadAndExtractTarball( url: string, destDir: string ): Promis
 function createWrapperScript(
 	scriptPath: string,
 	nodeBinaryPath: string,
-	entryPoint: string
+	entryPoint: string,
+	env?: Record< string, string >
 ): void {
-	const content = `#!/bin/bash\n"${ nodeBinaryPath }" "${ entryPoint }" "$@"\n`;
+	const envLines = env
+		? Object.entries( env )
+				.map( ( [ key, value ] ) => `export ${ key }="${ value }"` )
+				.join( '\n' ) + '\n'
+		: '';
+	const content = `#!/bin/bash\n${ envLines }"${ nodeBinaryPath }" "${ entryPoint }" "$@"\n`;
 	fs.writeFileSync( scriptPath, content, { mode: 0o755 } );
 }
 
@@ -85,7 +91,8 @@ function refreshWrapperScripts(): void {
 	createWrapperScript(
 		getMcpBinScript( 'studio-mcp' ),
 		nodeBinaryPath,
-		path.join( getMcpServerDir(), 'index.js' )
+		path.join( getMcpServerDir(), 'index.js' ),
+		{ STUDIO_CLI_PATH: getMcpBinScript( 'studio-cli' ) }
 	);
 	createWrapperScript( getMcpBinScript( 'studio-cli' ), nodeBinaryPath, cliMainPath );
 }

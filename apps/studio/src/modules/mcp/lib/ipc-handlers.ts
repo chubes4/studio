@@ -32,7 +32,6 @@ export async function isClaudeConfiguredForMcp(): Promise< boolean > {
 export async function configureClaudeForMcp(): Promise< void > {
 	const configPath = getClaudeDesktopConfigPath();
 	const mcpCommand = getMcpBinScript( 'studio-mcp' );
-	const cliCommand = getMcpBinScript( 'studio-cli' );
 
 	await fs.ensureDir( getClaudeDesktopConfigDir() );
 
@@ -51,7 +50,6 @@ export async function configureClaudeForMcp(): Promise< void > {
 
 	mcpServers[ 'wordpress-studio' ] = {
 		command: mcpCommand,
-		env: { STUDIO_CLI_PATH: cliCommand },
 	};
 
 	config.mcpServers = mcpServers;
@@ -84,12 +82,10 @@ export async function unconfigureClaudeForMcp(): Promise< void > {
  */
 export async function getMcpServerConfig(): Promise< string > {
 	const mcpCommand = getMcpBinScript( 'studio-mcp' );
-	const cliCommand = getMcpBinScript( 'studio-cli' );
 
 	const config = {
 		'wordpress-studio': {
 			command: mcpCommand,
-			env: { STUDIO_CLI_PATH: cliCommand },
 		},
 	};
 
