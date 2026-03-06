@@ -82,7 +82,7 @@ function createWrapperScript(
 	fs.writeFileSync( scriptPath, content, { mode: 0o755 } );
 }
 
-function refreshWrapperScripts(): void {
+function createWrapperScripts(): void {
 	const nodeBinaryPath = getBundledNodeBinaryPath();
 	const cliMainPath = getCliPath();
 
@@ -105,7 +105,6 @@ export async function setupMcpServer(): Promise< void > {
 
 	await fs.ensureDir( getMcpInstallDir() );
 
-	// TODO: consider updating the version here if there is a new release or consider theoretical idea to allow MCP update itself automatically
 	if ( ! ( await isMcpServerInstalled() ) ) {
 		console.log( 'MCP server not found, downloading...' );
 		const release = await fetchLatestRelease();
@@ -120,6 +119,10 @@ export async function setupMcpServer(): Promise< void > {
 		console.log( `MCP server ${ version } installed.` );
 	}
 
-	refreshWrapperScripts();
-	// TODO should we also refresh claude config here if it's configured (dev / prod / reset previous bash)
+	if (
+		! fs.pathExistsSync( getMcpBinScript( 'studio-mcp' ) ) ||
+		! fs.pathExistsSync( getMcpBinScript( 'studio-cli' ) )
+	) {
+		createWrapperScripts();
+	}
 }
