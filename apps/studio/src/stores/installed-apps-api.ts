@@ -27,13 +27,7 @@ const getFirstInstalledEditor = async (): Promise< SupportedEditor | null > => {
 export const installedAppsApi = createApi( {
 	reducerPath: 'installedAppsApi',
 	baseQuery: fetchBaseQuery(),
-	tagTypes: [
-		'StudioCliIsInstalled',
-		'ClaudeIsConfiguredForMcp',
-		'InstalledApps',
-		'UserEditor',
-		'UserTerminal',
-	],
+	tagTypes: [ 'StudioCliIsInstalled', 'InstalledApps', 'UserEditor', 'UserTerminal' ],
 	endpoints: ( builder ) => ( {
 		getStudioCliIsInstalled: builder.query< boolean, void >( {
 			queryFn: async () => {
@@ -41,13 +35,6 @@ export const installedAppsApi = createApi( {
 				return { data: isInstalled };
 			},
 			providesTags: [ 'StudioCliIsInstalled' ],
-		} ),
-		getClaudeIsConfiguredForMcp: builder.query< boolean, void >( {
-			queryFn: async () => {
-				const isConfigured = await getIpcApi().isClaudeConfiguredForMcp();
-				return { data: isConfigured };
-			},
-			providesTags: [ 'ClaudeIsConfiguredForMcp' ],
 		} ),
 		getInstalledApps: builder.query< InstalledApps, void >( {
 			queryFn: async () => {
@@ -90,17 +77,6 @@ export const installedAppsApi = createApi( {
 			},
 			invalidatesTags: [ 'StudioCliIsInstalled' ],
 		} ),
-		saveClaudeIsConfiguredForMcp: builder.mutation< boolean, boolean >( {
-			queryFn: async ( shouldConfigure ) => {
-				if ( shouldConfigure ) {
-					await getIpcApi().configureClaudeForMcp();
-				} else {
-					await getIpcApi().unconfigureClaudeForMcp();
-				}
-				return { data: shouldConfigure };
-			},
-			invalidatesTags: [ 'ClaudeIsConfiguredForMcp' ],
-		} ),
 		saveUserEditor: builder.mutation< SupportedEditor, SupportedEditor >( {
 			queryFn: async ( editor ) => {
 				await getIpcApi().saveUserEditor( editor );
@@ -126,8 +102,6 @@ export const {
 	useSaveUserTerminalMutation,
 	useGetStudioCliIsInstalledQuery,
 	useSaveStudioCliIsInstalledMutation,
-	useGetClaudeIsConfiguredForMcpQuery,
-	useSaveClaudeIsConfiguredForMcpMutation,
 } = installedAppsApi;
 
 export const selectInstalledEditors = createSelector(

@@ -20,11 +20,3 @@ export function getMcpVersionFile(): string {
 export function getMcpBinScript( name: 'studio-mcp' | 'studio-cli' ): string {
 	return path.join( getMcpBinDir(), name );
 }
-
-export function getClaudeDesktopConfigDir(): string {
-	return path.join( os.homedir(), 'Library', 'Application Support', 'Claude' );
-}
-
-export function getClaudeDesktopConfigPath(): string {
-	return path.join( getClaudeDesktopConfigDir(), 'claude_desktop_config.json' );
-}

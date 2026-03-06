@@ -1,29 +1,18 @@
-import { CheckboxControl } from '@wordpress/components';
 import { useI18n } from '@wordpress/react-i18n';
 import { useEffect, useState } from 'react';
 import Button from 'src/components/button';
 import { getIpcApi } from 'src/lib/get-ipc-api';
 import { SettingsFormField } from 'src/modules/user-settings/components/settings-form-field';
 
-type McpSettingsProps = {
-	valueClaude: boolean;
-	onChangeClaude: ( value: boolean ) => void;
-};
-
-export function McpSettings( { valueClaude, onChangeClaude }: McpSettingsProps ) {
+export function McpSettings() {
 	const { __ } = useI18n();
 	const [ configJson, setConfigJson ] = useState( '' );
-	const [ isClaudeDesktopAppInstalled, setIsClaudeDesktopAppInstalled ] = useState( false );
 	const [ copied, setCopied ] = useState( false );
 
 	useEffect( () => {
 		getIpcApi()
 			.getMcpServerConfig()
 			.then( setConfigJson )
-			.catch( () => {} );
-		getIpcApi()
-			.isClaudeDesktopInstalled()
-			.then( setIsClaudeDesktopAppInstalled )
 			.catch( () => {} );
 	}, [] );
 
@@ -54,26 +43,6 @@ export function McpSettings( { valueClaude, onChangeClaude }: McpSettingsProps )
 							</Button>
 						</div>
 					</div>
-				</div>
-				<div className="flex flex-col gap-1">
-					<CheckboxControl
-						label={ __( 'Auto-configure Claude Desktop' ) }
-						checked={ valueClaude }
-						onChange={ onChangeClaude }
-						disabled={ ! isClaudeDesktopAppInstalled }
-					/>
-					{ ! isClaudeDesktopAppInstalled && (
-						<div className="a8c-body-small text-a8c-gray-700 ml-6">
-							{ __(
-								'Claude Desktop is not installed. Download it from https://claude.com/download to enable auto-configuration.'
-							) }
-						</div>
-					) }
-					{ isClaudeDesktopAppInstalled && (
-						<div className="a8c-body-small text-a8c-gray-700 ml-6">
-							{ __( 'More AI assistants will be supported for auto-configuration in the future.' ) }
-						</div>
-					) }
 				</div>
 			</div>
 		</SettingsFormField>

@@ -157,10 +157,6 @@ const api: IpcApi = {
 	isStudioCliInstalled: () => ipcRendererInvoke( 'isStudioCliInstalled' ),
 	installStudioCli: () => ipcRendererInvoke( 'installStudioCli' ),
 	uninstallStudioCli: () => ipcRendererInvoke( 'uninstallStudioCli' ),
-	isClaudeDesktopInstalled: () => ipcRendererInvoke( 'isClaudeDesktopInstalled' ),
-	isClaudeConfiguredForMcp: () => ipcRendererInvoke( 'isClaudeConfiguredForMcp' ),
-	configureClaudeForMcp: () => ipcRendererInvoke( 'configureClaudeForMcp' ),
-	unconfigureClaudeForMcp: () => ipcRendererInvoke( 'unconfigureClaudeForMcp' ),
 	getMcpServerConfig: () => ipcRendererInvoke( 'getMcpServerConfig' ),
 };
 
