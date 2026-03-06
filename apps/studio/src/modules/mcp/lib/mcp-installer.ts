@@ -2,7 +2,7 @@ import { execFile } from 'child_process';
 import os from 'os';
 import path from 'path';
 import fs from 'fs-extra';
-import { getBundledNodeBinaryPath, getCliPath } from 'src/storage/paths';
+import { getResourcesPath } from 'src/storage/paths';
 import {
 	getMcpInstallDir,
 	getMcpServerDir,
@@ -67,34 +67,37 @@ async function downloadAndExtractTarball( url: string, destDir: string ): Promis
 	}
 }
 
-function createWrapperScript(
-	scriptPath: string,
-	nodeBinaryPath: string,
-	entryPoint: string,
-	env?: Record< string, string >
-): void {
-	const envLines = env
-		? Object.entries( env )
-				.map( ( [ key, value ] ) => `export ${ key }="${ value }"` )
-				.join( '\n' ) + '\n'
-		: '';
-	const content = `#!/bin/bash\n${ envLines }"${ nodeBinaryPath }" "${ entryPoint }" "$@"\n`;
-	fs.writeFileSync( scriptPath, content, { mode: 0o755 } );
-}
-
 function createWrapperScripts(): void {
-	const nodeBinaryPath = getBundledNodeBinaryPath();
-	const cliMainPath = getCliPath();
+	const resourcesPath = getResourcesPath();
+	const studioNodePath = path.join( resourcesPath, 'bin', 'node' );
+	const studioCliPath = path.join( resourcesPath, 'cli', 'main.js' );
+	const mcpEntryPoint = path.join( getMcpServerDir(), 'index.js' );
+	const cliScriptPath = getMcpBinScript( 'studio-cli' );
+
+	const nodeResolution = `STUDIO_NODE="${ studioNodePath }"
+
+if [ -x "$STUDIO_NODE" ]; then
+  NODE="$STUDIO_NODE"
+else
+  NODE="node"
+fi`;
 
 	fs.ensureDirSync( getMcpBinDir() );
 
-	createWrapperScript(
-		getMcpBinScript( 'studio-mcp' ),
-		nodeBinaryPath,
-		path.join( getMcpServerDir(), 'index.js' ),
-		{ STUDIO_CLI_PATH: getMcpBinScript( 'studio-cli' ) }
-	);
-	createWrapperScript( getMcpBinScript( 'studio-cli' ), nodeBinaryPath, cliMainPath );
+	const mcpScript = `#!/bin/bash
+${ nodeResolution }
+
+export STUDIO_CLI_PATH="${ cliScriptPath }"
+"$NODE" "${ mcpEntryPoint }" "$@"
+`;
+	fs.writeFileSync( getMcpBinScript( 'studio-mcp' ), mcpScript, { mode: 0o755 } );
+
+	const cliScript = `#!/bin/bash
+${ nodeResolution }
+
+"$NODE" "${ studioCliPath }" "$@"
+`;
+	fs.writeFileSync( getMcpBinScript( 'studio-cli' ), cliScript, { mode: 0o755 } );
 }
 
 export async function setupMcpServer(): Promise< void > {
