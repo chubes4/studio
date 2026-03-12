@@ -1,5 +1,12 @@
+import {
+	configureMcpClient,
+	getManualConfigInfo,
+	getManualUnconfigureInfo,
+	MCP_CLIENT_ASSISTANTS,
+	unconfigureMcpClient,
+} from '@studio/common/lib/mcp-client-config';
 import { getMcpServerConfigJson } from '@studio/common/lib/mcp-config';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { startMcpStdioServer } from 'cli/ai/mcp-server';
 import { Logger, LoggerError } from 'cli/logger';
 import { StudioArgv } from 'cli/types';
@@ -29,6 +36,7 @@ function printInstallationInstructions(): void {
 		'  Claude Desktop',
 		'    macOS  ~/Library/Application\\ Support/Claude/claude_desktop_config.json',
 		'    Win    %APPDATA%\\Claude\\claude_desktop_config.json',
+		'  Claude Code: ~/.claude.json',
 		'',
 	];
 
@@ -46,18 +54,67 @@ export async function runCommand(): Promise< void > {
 	await startMcpStdioServer();
 }
 
+const AS_OPTION = {
+	as: {
+		alias: 'a',
+		type: 'string' as const,
+		choices: MCP_CLIENT_ASSISTANTS,
+		describe: sprintf( __( 'AI assistant to configure (%s)' ), MCP_CLIENT_ASSISTANTS.join( ', ' ) ),
+	},
+};
+
 export const registerCommand = ( yargs: StudioArgv ) => {
 	return yargs.command( {
 		command: 'mcp',
 		describe: __( 'MCP server for AI assistants' ),
-		builder: ( yargs ) => {
-			return yargs.help( false ).option( 'help', { type: 'boolean' } );
+		builder: ( mcpYargs ) => {
+			return mcpYargs
+				.option( 'help', { type: 'boolean' } )
+				.option( 'path', { hidden: true } )
+				.command( {
+					command: 'configure',
+					describe: __( 'Configure Studio MCP in your AI assistant' ),
+					builder: ( cmdYargs ) => cmdYargs.options( AS_OPTION ),
+					handler: async ( argv ) => {
+						const assistant = argv.as;
+						if ( assistant ) {
+							const result = await configureMcpClient( assistant );
+							if ( result.success ) {
+								console.log(
+									sprintf( __( 'Studio MCP configured successfully for %s.' ), assistant )
+								);
+							} else {
+								console.error( sprintf( __( 'Failed to configure: %s' ), result.message ?? '' ) );
+								process.exitCode = 1;
+							}
+						} else {
+							console.log( getManualConfigInfo() );
+						}
+					},
+				} )
+				.command( {
+					command: 'unconfigure',
+					describe: __( 'Remove Studio MCP from your AI assistant' ),
+					builder: ( cmdYargs ) => cmdYargs.options( AS_OPTION ),
+					handler: async ( argv ) => {
+						const assistant = argv.as;
+						if ( assistant ) {
+							const result = await unconfigureMcpClient( assistant );
+							if ( result.success ) {
+								console.log(
+									sprintf( __( 'Studio MCP removed successfully from %s.' ), assistant )
+								);
+							} else {
+								console.error( sprintf( __( 'Failed to unconfigure: %s' ), result.message ?? '' ) );
+								process.exitCode = 1;
+							}
+						} else {
+							console.log( getManualUnconfigureInfo() );
+						}
+					},
+				} );
 		},
-		handler: async ( argv ) => {
-			if ( argv.help ) {
-				printInstallationInstructions();
-				return;
-			}
+		handler: async () => {
 			try {
 				await runCommand();
 			} catch ( error ) {
