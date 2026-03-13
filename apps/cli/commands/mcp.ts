@@ -36,7 +36,6 @@ function printInstallationInstructions(): void {
 		'  Claude Desktop',
 		'    macOS  ~/Library/Application\\ Support/Claude/claude_desktop_config.json',
 		'    Win    %APPDATA%\\Claude\\claude_desktop_config.json',
-		'  Claude Code: ~/.claude.json',
 		'',
 	];
 
