@@ -1,0 +1,114 @@
+name: Agent Evaluation
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      channel_id:
+        description: 'Slack channel ID to post results (leave empty to skip Slack)'
+        required: false
+        type: string
+      test_filter:
+        description: 'Run only first N tests (must be a number)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    name: Run agent evaluation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CLI
+        run: npm run cli:build
+
+      - name: Run evaluation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TEST_FILTER: ${{ inputs.test_filter }}
+        run: |
+          ARGS="--no-cache --output /tmp/eval-results.json"
+          if [ -n "$TEST_FILTER" ]; then
+            if ! [[ "$TEST_FILTER" =~ ^[0-9]+$ ]]; then
+              echo "Error: test_filter must be a number"
+              exit 1
+            fi
+            ARGS="$ARGS -n $TEST_FILTER"
+          fi
+          npx promptfoo eval -c eval/promptfoo.config.yaml $ARGS
+
+      - name: Format Slack message
+        id: slack
+        if: always() && (inputs.channel_id || github.event_name == 'schedule')
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ ! -f /tmp/eval-results.json ]; then
+            jq -n --arg url "$RUN_URL" '{
+              text: ":x: Agent eval failed to produce results. <" + $url + "|View run>",
+              blocks: [{ type: "section", text: { type: "mrkdwn", text: ":x: Agent eval failed to produce results. <" + $url + "|View run>" } }]
+            }' > /tmp/slack-message.json
+            exit 0
+          fi
+
+          jq --arg url "$RUN_URL" '
+            .results.stats as $s |
+            [.results.results[] |
+              "• " + (.testCase.description // .vars.caseId // "unknown") + ": " +
+              (if .success then "✅" else "❌" end)
+            ] | join("\n") as $lines |
+            (if $s.failures == 0 and $s.errors == 0
+              then ":white_check_mark: Agent eval: " + ($s.successes | tostring) + "/" + (($s.successes + $s.failures + $s.errors) | tostring) + " passed"
+              else ":x: Agent eval: " + ($s.failures | tostring) + "/" + (($s.successes + $s.failures + $s.errors) | tostring) + " failed"
+            end) as $header |
+            (if $s.failures == 0 and $s.errors == 0 then "#36a64f" else "#e01e5a" end) as $color |
+            {
+              attachments: [{
+                color: $color,
+                blocks: [
+                  { type: "section", text: { type: "mrkdwn", text: $header } },
+                  { type: "section", text: { type: "mrkdwn", text: $lines } },
+                  { type: "context", elements: [{ type: "mrkdwn", text: ("<" + $url + "|View run>") }] }
+                ]
+              }]
+            }
+          ' /tmp/eval-results.json > /tmp/slack-message.json
+
+      - name: Send Slack notification
+        if: always() && steps.slack.outcome == 'success'
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ inputs.channel_id || 'C08LZ79MKG9' }}
+        run: |
+          jq --arg channel "$SLACK_CHANNEL_ID" \
+            '. + {channel: $channel, username: "Studio Eval", icon_emoji: ":test_tube:"}' \
+            /tmp/slack-message.json | \
+          curl -sf -o /dev/null -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_TOKEN" \
+            -H 'Content-Type: application/json; charset=utf-8' \
+            --data-binary @- || echo "Warning: Slack notification failed"
+
+      - name: Upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: /tmp/eval-results.json
+          retention-days: 7
