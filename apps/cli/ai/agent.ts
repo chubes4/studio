@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { query, type Query, type McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
+import { query, type Query } from '@anthropic-ai/claude-agent-sdk';
 import {
 	ALLOWED_TOOLS,
 	ALLOWED_TOOLS_REMOTE,
@@ -11,7 +11,6 @@ import {
 } from 'cli/ai/security';
 import { buildSystemPrompt } from 'cli/ai/system-prompt';
 import { createRemoteSiteTools, createStudioTools } from 'cli/ai/tools';
-import type { DetectedMcpServers } from 'cli/ai/external-mcp';
 import type { SiteInfo } from 'cli/ai/ui';
 
 export type { AskUserQuestion } from 'cli/ai/security';
@@ -25,7 +24,6 @@ export interface AiAgentConfig {
 	activeSite?: SiteInfo | null;
 	wpcomAccessToken?: string;
 	onAskUser?: ( questions: AskUserQuestion[] ) => Promise< Record< string, string > >;
-	externalMcpServers?: DetectedMcpServers;
 }
 
 export const AI_MODELS = {
@@ -64,7 +62,6 @@ export function startAiAgent( config: AiAgentConfig ): Query {
 		activeSite,
 		wpcomAccessToken,
 		onAskUser,
-		externalMcpServers,
 	} = config;
 	const resolvedEnv = env ?? { ...( process.env as Record< string, string > ) };
 
@@ -72,15 +69,17 @@ export function startAiAgent( config: AiAgentConfig ): Query {
 
 	// Configure MCP servers based on site type:
 	// Remote sites get WP.com REST API tools + screenshot; local sites get the full Studio toolset.
-	const mcpServers: Record< string, McpServerConfig > = {
+	const mcpServers = {
 		studio: isRemoteSite
 			? createRemoteSiteTools( wpcomAccessToken, activeSite.wpcomSiteId! )
 			: createStudioTools(),
-		...externalMcpServers,
+		agentation: {
+			command: 'npx',
+			args: [ 'agentation-mcp', 'server' ],
+		},
 	};
 
 	const allowedTools = isRemoteSite ? [ ...ALLOWED_TOOLS_REMOTE ] : [ ...ALLOWED_TOOLS ];
-	const externalMcpServerNames = externalMcpServers ? Object.keys( externalMcpServers ) : [];
 
 	const systemPromptOptions = isRemoteSite
 		? {
@@ -89,9 +88,8 @@ export function startAiAgent( config: AiAgentConfig ): Query {
 					url: activeSite.url ?? '',
 					id: activeSite.wpcomSiteId!,
 				},
-				externalMcpServers: externalMcpServerNames,
 		  }
-		: { externalMcpServers: externalMcpServerNames };
+		: undefined;
 
 	if ( ! fs.existsSync( STUDIO_ROOT ) ) {
 		fs.mkdirSync( STUDIO_ROOT, { recursive: true } );

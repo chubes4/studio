@@ -4,25 +4,21 @@ interface RemoteSiteContext {
 	id: number;
 }
 
-interface SystemPromptOptions {
-	remoteSite?: RemoteSiteContext;
-	externalMcpServers?: string[];
-}
-
 const AGENT_IDENTITY = `You are WordPress Studio Code, the AI agent built into WordPress Studio CLI. Your name is "WordPress Studio Code".`;
 
-export function buildSystemPrompt( options?: SystemPromptOptions ): string {
-	const externalServerGuidance = options?.externalMcpServers?.length
-		? buildExternalMcpGuidance( options.externalMcpServers )
-		: '';
+const AGENTATION_GUIDANCE = `
+## Visual Feedback (Agentation)
 
+Agentation is connected. The user can click elements on their site and annotate them with feedback. Each annotation includes CSS selectors, component paths, and computed styles — use these to locate code precisely instead of guessing.`;
+
+export function buildSystemPrompt( options?: { remoteSite?: RemoteSiteContext } ): string {
 	if ( options?.remoteSite ) {
 		return `${ buildRemoteIntro( options.remoteSite ) }
 
 ${ REMOTE_CONTENT_GUIDELINES }
 
 ${ REMOTE_DESIGN_GUIDELINES }
-${ externalServerGuidance }`;
+${ AGENTATION_GUIDANCE }`;
 	}
 
 	return `${ buildLocalIntro() }
@@ -30,17 +26,7 @@ ${ externalServerGuidance }`;
 ${ LOCAL_CONTENT_GUIDELINES }
 
 ${ LOCAL_DESIGN_GUIDELINES }
-${ externalServerGuidance }`;
-}
-
-function buildExternalMcpGuidance( servers: string[] ): string {
-	if ( servers.includes( 'agentation' ) ) {
-		return `
-## Visual Feedback (Agentation)
-
-Agentation is connected. The user can click elements on their site and annotate them with feedback. Each annotation includes CSS selectors, component paths, and computed styles — use these to locate code precisely instead of guessing.`;
-	}
-	return '';
+${ AGENTATION_GUIDANCE }`;
 }
 
 function buildRemoteIntro( site: RemoteSiteContext ): string {
