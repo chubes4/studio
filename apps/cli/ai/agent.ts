@@ -79,13 +79,8 @@ export function startAiAgent( config: AiAgentConfig ): Query {
 	};
 
 	const allowedTools = isRemoteSite ? [ ...ALLOWED_TOOLS_REMOTE ] : [ ...ALLOWED_TOOLS ];
+	const externalMcpServerNames = externalMcpServers ? Object.keys( externalMcpServers ) : [];
 
-	// Collect labels for connected external MCP servers
-	const externalMcpServerLabels = externalMcpServers
-		? Object.keys( externalMcpServers ).map( ( name ) => name )
-		: [];
-
-	// Build site-aware system prompt
 	const systemPromptOptions = isRemoteSite
 		? {
 				remoteSite: {
@@ -93,9 +88,9 @@ export function startAiAgent( config: AiAgentConfig ): Query {
 					url: activeSite.url ?? '',
 					id: activeSite.wpcomSiteId!,
 				},
-				externalMcpServers: externalMcpServerLabels,
+				externalMcpServers: externalMcpServerNames,
 		  }
-		: { externalMcpServers: externalMcpServerLabels };
+		: { externalMcpServers: externalMcpServerNames };
 
 	return query( {
 		prompt,
