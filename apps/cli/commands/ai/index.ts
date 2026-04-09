@@ -16,6 +16,7 @@ import {
 	resolveUnavailableAiProvider,
 	saveSelectedAiProvider,
 } from 'cli/ai/auth';
+import { detectExternalMcpServers, type DetectedMcpServers } from 'cli/ai/external-mcp';
 import { AI_PROVIDERS, type AiProviderId } from 'cli/ai/providers';
 import { resolveResumeSessionContext } from 'cli/ai/sessions/context';
 import { AiSessionRecorder } from 'cli/ai/sessions/recorder';
@@ -75,6 +76,22 @@ export async function runCommand(
 	ui.currentModel = currentModel;
 	ui.start();
 	ui.showWelcome();
+
+	// Detect external MCP servers (e.g. Agentation) in the background
+	let externalMcpServers: DetectedMcpServers = {};
+	void detectExternalMcpServers().then( ( detected ) => {
+		externalMcpServers = detected;
+		const names = Object.keys( detected );
+		if ( names.length > 0 ) {
+			ui.showInfo(
+				sprintf(
+					/* translators: %s: comma-separated list of external MCP server names */
+					__( 'External tools detected: %s' ),
+					names.join( ', ' )
+				)
+			);
+		}
+	} );
 
 	if ( options.showLegacyCommandNotice ) {
 		ui.showInfo( __( 'ⓘ The "studio ai" command is now "studio code".' ) );
@@ -414,6 +431,7 @@ export async function runCommand(
 			activeSite: site,
 			wpcomAccessToken,
 			onAskUser: ( questions ) => askUserAndPersistAnswers( questions ),
+			externalMcpServers,
 		} );
 
 		ui.onInterrupt = () => {

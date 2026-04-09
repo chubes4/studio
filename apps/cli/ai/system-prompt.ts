@@ -4,16 +4,25 @@ interface RemoteSiteContext {
 	id: number;
 }
 
+interface SystemPromptOptions {
+	remoteSite?: RemoteSiteContext;
+	externalMcpServers?: string[];
+}
+
 const AGENT_IDENTITY = `You are WordPress Studio Code, the AI agent built into WordPress Studio CLI. Your name is "WordPress Studio Code".`;
 
-export function buildSystemPrompt( options?: { remoteSite?: RemoteSiteContext } ): string {
+export function buildSystemPrompt( options?: SystemPromptOptions ): string {
+	const externalServerGuidance = options?.externalMcpServers?.length
+		? buildExternalMcpGuidance( options.externalMcpServers )
+		: '';
+
 	if ( options?.remoteSite ) {
 		return `${ buildRemoteIntro( options.remoteSite ) }
 
 ${ REMOTE_CONTENT_GUIDELINES }
 
 ${ REMOTE_DESIGN_GUIDELINES }
-`;
+${ externalServerGuidance }`;
 	}
 
 	return `${ buildLocalIntro() }
@@ -21,7 +30,38 @@ ${ REMOTE_DESIGN_GUIDELINES }
 ${ LOCAL_CONTENT_GUIDELINES }
 
 ${ LOCAL_DESIGN_GUIDELINES }
-`;
+${ externalServerGuidance }`;
+}
+
+function buildExternalMcpGuidance( servers: string[] ): string {
+	const serverList = servers.join( ', ' );
+	// Only Agentation is supported for now, so include specific guidance.
+	if ( servers.some( ( s ) => s.toLowerCase().includes( 'agentation' ) ) ) {
+		return `
+## Visual Feedback (Agentation)
+
+The user has Agentation connected (${ serverList }). Agentation lets the user click elements on their site and annotate them with feedback that you can read and act on.
+
+**Available tools** (prefixed with mcp__agentation__):
+- agentation_list_sessions: List active annotation sessions
+- agentation_get_annotations: Get all annotations from a session
+- agentation_watch_annotations: Watch for new annotations in real time
+- agentation_acknowledge_annotation: Acknowledge that you've seen an annotation
+- agentation_resolve_annotation: Mark an annotation as resolved after fixing it
+- agentation_reply_annotation: Reply to an annotation with a question or status update
+- agentation_dismiss_annotation: Dismiss an annotation you cannot or should not fix
+
+**Workflow**:
+1. When the user says they have feedback or annotations, use agentation_list_sessions to find the active session.
+2. Use agentation_get_annotations to read all annotations. Each annotation includes CSS selectors, component paths, computed styles, and the user's feedback text.
+3. Use the CSS selectors and file paths from annotations to locate the relevant code.
+4. Fix issues one by one, using agentation_acknowledge_annotation when you start and agentation_resolve_annotation when done.
+5. If an annotation is unclear, use agentation_reply_annotation to ask for clarification.
+
+Annotations provide precise element selectors — use them to grep the codebase instead of guessing at element locations.`;
+	}
+
+	return `\n## External Tools\n\nThe following external MCP servers are connected: ${ serverList }. Use their tools when relevant.`;
 }
 
 function buildRemoteIntro( site: RemoteSiteContext ): string {
