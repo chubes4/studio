@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import { query, type Query, type McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
 import {
@@ -91,6 +92,10 @@ export function startAiAgent( config: AiAgentConfig ): Query {
 				externalMcpServers: externalMcpServerNames,
 		  }
 		: { externalMcpServers: externalMcpServerNames };
+
+	if ( ! fs.existsSync( STUDIO_ROOT ) ) {
+		fs.mkdirSync( STUDIO_ROOT, { recursive: true } );
+	}
 
 	return query( {
 		prompt,
