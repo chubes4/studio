@@ -3,8 +3,6 @@
  * annotation toolbar injected. The user can click elements and add feedback.
  * Annotations sync to the agentation-mcp HTTP server (localhost:4747) and
  * the agent reads them via MCP tools.
- *
- * The browser stays open — the user can annotate while the agent works.
  */
 
 const AGENTATION_ENDPOINT = 'http://localhost:4747';
@@ -42,10 +40,9 @@ export async function openAgentationBrowser( siteUrl: string ): Promise< string 
 		timeout: 30_000,
 	} );
 
-	// Wait for page to settle
 	await agentationPage.waitForLoadState( 'networkidle', { timeout: 10_000 } ).catch( () => {} );
 
-	// Use import map to ensure a single React instance across all ESM imports
+	// Import map ensures a single React instance across all ESM imports
 	await agentationPage.evaluate( ( endpoint ) => {
 		const importMap = document.createElement( 'script' );
 		importMap.type = 'importmap';
@@ -79,20 +76,10 @@ export async function openAgentationBrowser( siteUrl: string ): Promise< string 
 		document.body.appendChild( script );
 	}, AGENTATION_ENDPOINT );
 
-	// Clean up on browser close
 	agentationPage.on( 'close', () => {
-		agentationBrowser?.close().catch( () => {} );
 		agentationBrowser = null;
 		agentationPage = null;
 	} );
 
 	return `Agentation browser opened at ${ siteUrl }. The user can now click elements and add annotations. Use agentation tools to read their feedback.`;
-}
-
-export async function closeAgentationBrowser(): Promise< void > {
-	if ( agentationBrowser ) {
-		await agentationBrowser.close().catch( () => {} );
-		agentationBrowser = null;
-		agentationPage = null;
-	}
 }

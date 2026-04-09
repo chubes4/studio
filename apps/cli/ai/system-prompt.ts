@@ -6,11 +6,6 @@ interface RemoteSiteContext {
 
 const AGENT_IDENTITY = `You are WordPress Studio Code, the AI agent built into WordPress Studio CLI. Your name is "WordPress Studio Code".`;
 
-const AGENTATION_GUIDANCE = `
-## Visual Feedback (Agentation)
-
-Agentation is connected. The user can click elements on their site and annotate them with feedback. Each annotation includes CSS selectors, component paths, and computed styles — use these to locate code precisely instead of guessing.`;
-
 export function buildSystemPrompt( options?: { remoteSite?: RemoteSiteContext } ): string {
 	if ( options?.remoteSite ) {
 		return `${ buildRemoteIntro( options.remoteSite ) }
@@ -18,7 +13,7 @@ export function buildSystemPrompt( options?: { remoteSite?: RemoteSiteContext } 
 ${ REMOTE_CONTENT_GUIDELINES }
 
 ${ REMOTE_DESIGN_GUIDELINES }
-${ AGENTATION_GUIDANCE }`;
+`;
 	}
 
 	return `${ buildLocalIntro() }
@@ -26,7 +21,7 @@ ${ AGENTATION_GUIDANCE }`;
 ${ LOCAL_CONTENT_GUIDELINES }
 
 ${ LOCAL_DESIGN_GUIDELINES }
-${ AGENTATION_GUIDANCE }`;
+`;
 }
 
 function buildRemoteIntro( site: RemoteSiteContext ): string {
