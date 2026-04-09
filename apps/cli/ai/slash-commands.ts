@@ -23,6 +23,7 @@ export const AI_CHAT_SLASH_COMMANDS: SlashCommandDef[] = [
 	{ name: 'provider', description: __( 'Switch the AI provider' ) },
 	{ name: 'preview', description: __( 'Push the active site to WordPress.com as a preview' ) },
 	{ name: 'exit', description: __( 'Exit the chat' ) },
+	{ name: 'annotate', description: __( 'Annotate site elements visually in a browser' ) },
 	{ name: 'taxonomist', description: __( 'Optimize category taxonomy with AI' ) },
 	{ name: 'need-for-speed', description: __( 'Run a performance audit on a site' ) },
 ];
