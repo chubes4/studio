@@ -31,7 +31,7 @@ Ask the user to let you know when they're done annotating. You can also use `age
 
 ### 3. Read annotations
 
-Use `agentation_list_sessions` to find the active session, then `agentation_get_annotations` to read all feedback.
+Use `agentation_get_all_pending` to get unresolved annotations. Ignore old/resolved sessions — only act on pending annotations for the current site URL.
 
 Each annotation includes:
 - **CSS selector** — use to grep the codebase for the element
