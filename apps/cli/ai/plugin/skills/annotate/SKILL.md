@@ -87,9 +87,8 @@ wp post update <id> --post_content="UPDATED BLOCK MARKUP"
 ```
 Always validate blocks after editing content.
 
-### What NOT to do
+### When to use what
 
-- Do NOT create custom plugins for simple CSS changes
-- Do NOT edit theme source files — use database overrides
-- Do NOT hardcode colors — use theme.json tokens or Global Styles
-- Do NOT modify core WordPress files
+- **Tweaking an existing site**: Prefer Global Styles custom CSS and template overrides in the database — these are non-destructive and easy to revert
+- **Building a theme or new site**: Edit theme files directly — that's the job. Follow Studio's existing guidelines for block themes (theme.json, templates/, style.css)
+- **Never**: Modify WordPress core files
