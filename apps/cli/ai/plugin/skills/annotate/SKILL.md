@@ -52,8 +52,44 @@ For each annotation:
 
 After all annotations are addressed, take a screenshot and confirm with the user.
 
-## Tips
+## Making changes the WordPress way
 
-- **CSS changes**: Create a small plugin with `wp_enqueue_style` rather than editing core theme files
-- **Template changes**: For block themes, check if the template is in the database (`wp post list --post_type=wp_template`) before editing theme files
-- **Use selectors**: The CSS selectors from annotations are precise — use them in your stylesheets instead of guessing at class names
+Always prefer WordPress APIs over direct file edits or custom plugins.
+
+### CSS / design changes
+
+Use **Global Styles custom CSS** — never create throwaway plugins:
+```
+wp option get stylesheet   → get active theme slug
+wp post list --post_type=wp_global_styles --post_status=publish --format=json   → find global styles post
+```
+Then edit the global styles post's `content` to add custom CSS, or update `settings`/`styles` JSON for design tokens (colors, fonts, spacing).
+
+Alternatively, use WP-CLI:
+```
+wp eval 'echo wp_get_custom_css();'   → read current custom CSS
+wp eval 'wp_update_custom_css_post("CSS HERE");'   → update custom CSS
+```
+
+### Template changes
+
+Create **template overrides via the database**, not file edits:
+```
+wp post create --post_type=wp_template --post_name="theme-slug//template-name" --post_content="BLOCK MARKUP" --post_status=publish
+```
+Check existing overrides first: `wp post list --post_type=wp_template --format=json`
+
+### Block content changes
+
+Edit **post/page content directly** via WP-CLI:
+```
+wp post update <id> --post_content="UPDATED BLOCK MARKUP"
+```
+Always validate blocks after editing content.
+
+### What NOT to do
+
+- Do NOT create custom plugins for simple CSS changes
+- Do NOT edit theme source files — use database overrides
+- Do NOT hardcode colors — use theme.json tokens or Global Styles
+- Do NOT modify core WordPress files
