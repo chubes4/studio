@@ -18,7 +18,11 @@ Then identify the target site. If there's an active site, use it. If there are m
 
 ## Workflow
 
-### 1. Open the browser and inject Agentation
+### 1. Clear old annotations
+
+Before opening the browser, dismiss all pending annotations from previous sessions so you start fresh. Use `agentation_get_all_pending`, then `agentation_dismiss` on each one.
+
+### 2. Open the browser and inject Agentation
 
 Call `site_info` to get the site URL — do NOT guess the URL or port.
 
@@ -40,26 +44,35 @@ cmux browser surface:NN eval 'import("https://esm.sh/react@18").then(function(R)
 Tell the user:
 > The browser is open. Click the **circle icon** in the bottom-right corner to activate the toolbar, then click any element to annotate it. Let me know when you're done.
 
-### 2. Read annotations
+### 3. Read annotations
 
-Use `agentation_get_all_pending` to get unresolved annotations. Ignore old/resolved sessions — only act on pending annotations for the current site URL.
+Use `agentation_get_all_pending` to get unresolved annotations. Filter results:
+- **Only** act on annotations whose `url` matches the current site URL
+- **Only** act on annotations the user just created in this session — check timestamps and ignore old ones
+- Ask the user to confirm the list before making changes if there are annotations you didn't expect
 
 Each annotation includes:
-- **CSS selector** — use to grep the codebase for the element
-- **Component path** — React component tree (if applicable)
-- **Computed styles** — current CSS values
-- **User feedback** — what the user wants changed
+- **CSS selector / elementPath** — use to find the element in the theme or via WP-CLI
+- **Computed styles** — current CSS values (colors, sizes, spacing)
+- **nearbyText** — visible text content of the element
+- **User feedback (comment)** — what the user wants changed
 
-### 3. Make changes
+### 4. Make changes
 
 For each annotation:
 1. Use `agentation_acknowledge_annotation` to signal you're working on it
-2. Locate the code using the CSS selector or component path
-3. Make the change (edit theme files, create plugins, use WP-CLI)
-4. Take a screenshot to verify
-5. Use `agentation_resolve_annotation` when done
+2. **Identify what to change:**
+   - Use the CSS selector to find the element in theme templates or stylesheets
+   - Use `wp_cli` with `post list --post_type=wp_template --format=json` to check if it's in a template override
+   - Use `wp_cli` with `eval "echo wp_get_custom_css();"` to check existing custom CSS
+3. **Apply the change using the right approach:**
+   - For style changes (colors, sizes, spacing): use Global Styles custom CSS with the selector from the annotation
+   - For content changes (text, headings, block structure): edit the template or post content via WP-CLI
+   - For block-level changes: identify the WordPress block type from the HTML structure (look for `wp-block-*` classes) and modify accordingly
+4. Take a screenshot to verify the change looks correct
+5. Use `agentation_resolve_annotation` with a summary of what was changed
 
-### 4. Verify
+### 5. Verify
 
 After all annotations are addressed, take a screenshot and confirm with the user.
 
