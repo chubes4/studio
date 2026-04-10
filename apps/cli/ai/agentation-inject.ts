@@ -1,8 +1,8 @@
 /**
  * Opens a headed Playwright browser on a Studio site with the Agentation
- * annotation toolbar injected. The user can click elements and add feedback.
- * Annotations sync to the agentation-mcp HTTP server (localhost:4747) and
- * the agent reads them via MCP tools.
+ * annotation toolbar injected via dynamic imports from esm.sh.
+ *
+ * Uses ?deps= pinning to ensure a single React instance shared with Agentation.
  */
 
 const AGENTATION_ENDPOINT = 'http://localhost:4747';
@@ -42,44 +42,22 @@ export async function openAgentationBrowser( siteUrl: string ): Promise< string 
 
 	await agentationPage.waitForLoadState( 'networkidle', { timeout: 10_000 } ).catch( () => {} );
 
-	// Import map ensures a single React instance across all ESM imports
-	await agentationPage.evaluate( ( endpoint ) => {
-		const importMap = document.createElement( 'script' );
-		importMap.type = 'importmap';
-		importMap.textContent = JSON.stringify( {
-			imports: {
-				react: 'https://esm.sh/react@18',
-				'react/': 'https://esm.sh/react@18/',
-				'react-dom': 'https://esm.sh/react-dom@18',
-				'react-dom/': 'https://esm.sh/react-dom@18/',
-			},
-		} );
-		document.head.prepend( importMap );
+	const injectScript = [
+		'import("https://esm.sh/react@18").then(function(R) {',
+		'return import("https://esm.sh/react-dom@18/client?deps=react@18").then(function(RD) {',
+		'return import("https://esm.sh/agentation@3?deps=react@18,react-dom@18").then(function(Ag) {',
+		'var c = document.createElement("div"); c.id = "__agentation-root"; document.body.appendChild(c);',
+		'RD.createRoot(c).render(R.default.createElement(Ag.PageFeedbackToolbarCSS,',
+		'{ endpoint: "' + AGENTATION_ENDPOINT + '" }));',
+		'}); }); });',
+	].join( ' ' );
 
-		const script = document.createElement( 'script' );
-		script.type = 'module';
-		script.textContent = `
-			import React from 'react';
-			import { createRoot } from 'react-dom/client';
-			import { PageFeedbackToolbarCSS } from 'https://esm.sh/agentation@3?external=react,react-dom';
-
-			const container = document.createElement('div');
-			container.id = '__agentation-root';
-			document.body.appendChild(container);
-
-			createRoot(container).render(
-				React.createElement(PageFeedbackToolbarCSS, {
-					endpoint: '${ endpoint }',
-				})
-			);
-		`;
-		document.body.appendChild( script );
-	}, AGENTATION_ENDPOINT );
+	await agentationPage.evaluate( injectScript );
 
 	agentationPage.on( 'close', () => {
 		agentationBrowser = null;
 		agentationPage = null;
 	} );
 
-	return `Agentation browser opened at ${ siteUrl }. The user can now click elements and add annotations. Use agentation tools to read their feedback.`;
+	return `Agentation browser opened at ${ siteUrl }. Click the circle icon in the bottom-right to annotate elements.`;
 }

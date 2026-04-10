@@ -14,22 +14,33 @@ When the user invokes this skill, introduce yourself:
 
 > **Visual Annotations** — I'll open your site in a browser with an annotation toolbar. Click any element, type your feedback, and I'll fix it.
 
-Then identify the target site. If there's an active site, use it. If there are multiple, ask which one.
+Then identify the target site. If there's an active site, use it. If there are multiple, ask which one. Call `site_info` to get the site URL — do NOT guess the URL or port.
 
 ## Workflow
 
-### 1. Open the browser
+### 1. Open the browser and inject Agentation
 
-Use the `open_annotation_browser` tool with the site URL. This opens a headed Playwright browser with the Agentation toolbar injected.
+Call `site_info` to get the site URL — do NOT guess the URL or port.
+
+**First, check for cmux** by running `test -S /tmp/cmux.sock && echo "cmux" || echo "no cmux"`.
+
+**If cmux is available**, use it for a side-by-side browser pane:
+
+```bash
+cmux browser open "<URL>"
+```
+Capture `surface:NN` from output, then:
+```bash
+cmux browser surface:NN wait --load-state complete --timeout-ms 15000
+cmux browser surface:NN eval 'import("https://esm.sh/react@18").then(function(R) { return import("https://esm.sh/react-dom@18/client?deps=react@18").then(function(RD) { return import("https://esm.sh/agentation@3?deps=react@18,react-dom@18").then(function(Ag) { var c = document.createElement("div"); c.id = "__agentation-root"; document.body.appendChild(c); RD.createRoot(c).render(R.default.createElement(Ag.PageFeedbackToolbarCSS, { endpoint: "http://localhost:4747" })); }); }); }); "ok"'
+```
+
+**If cmux is NOT available**, use the `open_annotation_browser` tool with the site URL. This opens a standalone Playwright browser with Agentation injected.
 
 Tell the user:
-> The browser is open. Click the **circle icon** in the bottom-right corner to activate the toolbar, then click any element to annotate it.
+> The browser is open. Click the **circle icon** in the bottom-right corner to activate the toolbar, then click any element to annotate it. Let me know when you're done.
 
-### 2. Wait for annotations
-
-Ask the user to let you know when they're done annotating. You can also use `agentation_watch_annotations` to monitor in real time.
-
-### 3. Read annotations
+### 2. Read annotations
 
 Use `agentation_get_all_pending` to get unresolved annotations. Ignore old/resolved sessions — only act on pending annotations for the current site URL.
 
@@ -39,7 +50,7 @@ Each annotation includes:
 - **Computed styles** — current CSS values
 - **User feedback** — what the user wants changed
 
-### 4. Make changes
+### 3. Make changes
 
 For each annotation:
 1. Use `agentation_acknowledge_annotation` to signal you're working on it
@@ -48,7 +59,7 @@ For each annotation:
 4. Take a screenshot to verify
 5. Use `agentation_resolve_annotation` when done
 
-### 5. Verify
+### 4. Verify
 
 After all annotations are addressed, take a screenshot and confirm with the user.
 
@@ -60,13 +71,6 @@ Always prefer WordPress APIs over direct file edits or custom plugins.
 
 Use **Global Styles custom CSS** — never create throwaway plugins:
 ```
-wp option get stylesheet   → get active theme slug
-wp post list --post_type=wp_global_styles --post_status=publish --format=json   → find global styles post
-```
-Then edit the global styles post's `content` to add custom CSS, or update `settings`/`styles` JSON for design tokens (colors, fonts, spacing).
-
-Alternatively, use WP-CLI:
-```
 wp eval 'echo wp_get_custom_css();'   → read current custom CSS
 wp eval 'wp_update_custom_css_post("CSS HERE");'   → update custom CSS
 ```
@@ -77,15 +81,6 @@ Create **template overrides via the database**, not file edits:
 ```
 wp post create --post_type=wp_template --post_name="theme-slug//template-name" --post_content="BLOCK MARKUP" --post_status=publish
 ```
-Check existing overrides first: `wp post list --post_type=wp_template --format=json`
-
-### Block content changes
-
-Edit **post/page content directly** via WP-CLI:
-```
-wp post update <id> --post_content="UPDATED BLOCK MARKUP"
-```
-Always validate blocks after editing content.
 
 ### When to use what
 

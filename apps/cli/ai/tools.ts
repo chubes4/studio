@@ -945,7 +945,7 @@ const exportSiteTool = tool(
 
 const openAnnotationBrowserTool = tool(
 	'open_annotation_browser',
-	'Opens a browser window on a site URL with the Agentation annotation toolbar. ' +
+	'Opens a headed browser on a site with the Agentation annotation toolbar. ' +
 		'The user can click elements and add visual feedback. Use agentation MCP tools to read annotations afterward.',
 	{
 		url: z.string().describe( 'The site URL to open (e.g., "http://localhost:8881")' ),
