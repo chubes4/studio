@@ -9,8 +9,8 @@ import {
 	PHP,
 	setPhpIniEntries,
 	ProcessIdAllocator,
+	type SpawnHandler,
 } from '@php-wasm/universal';
-import { createSpawnHandler } from '@php-wasm/util';
 import { DEFAULT_PHP_VERSION } from '@studio/common/constants';
 import { IS_JSPI_AVAILABLE } from '@studio/common/lib/jspi';
 import {
@@ -36,6 +36,10 @@ import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 
 const processIdAllocator = new ProcessIdAllocator();
 const PLAYGROUND_INTERNAL_SHARED_FOLDER = '/internal/shared';
+
+function createNativeSpawnHandler(): SpawnHandler {
+	return spawn as unknown as SpawnHandler;
+}
 
 /**
  * Runtime-agnostic WP-CLI invocation result. Both the native PHP runtime and
@@ -155,24 +159,6 @@ async function runNativeWpCliCommand(
 	};
 }
 
-/**
- * Creates a no-op spawn handler that immediately exits with code 1.
- * This allows process spawning functions (proc_open, exec, etc.) to be called
- * without crashing, but they will fail gracefully. WP-CLI detects these failures
- * and falls back to single-threaded mode.
- *
- * The timeout before exit is required by the createSpawnHandler API — PHP needs
- * an event loop tick to set up its stream listeners after proc_open() returns.
- * Without it, the process exits before PHP registers its handlers and
- * createSpawnHandler throws a "exited synchronously" error.
- */
-function createNoopSpawnHandler() {
-	return createSpawnHandler( async ( args, processApi ) => {
-		await new Promise( ( resolve ) => setTimeout( resolve, 1 ) );
-		processApi.exit( 1 );
-	} );
-}
-
 // Run a WP-CLI command in a PHP-WASM instance. This function can be used even if the targeted
 // Studio site is already running, but it is typically faster to use the `sendWpCliCommand`
 // function in that case.
@@ -218,7 +204,7 @@ export async function runWpCliCommand(
 			allow_url_fopen: 1,
 		} );
 
-		await php.setSpawnHandler( createNoopSpawnHandler() );
+		await php.setSpawnHandler( createNativeSpawnHandler() );
 
 		await cleanupLegacyMuPlugins( siteFolder );
 
@@ -327,7 +313,7 @@ export async function runGlobalWpCliCommand(
 			allow_url_fopen: 1,
 		} );
 
-		await php.setSpawnHandler( createNoopSpawnHandler() );
+		await php.setSpawnHandler( createNativeSpawnHandler() );
 
 		await php.mount( '/tmp/wp-cli.phar', createNodeFsMountHandler( getWpCliPharPath() ) );
 
